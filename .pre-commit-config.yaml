@@ -1,0 +1,49 @@
+# See https://pre-commit.com for usage.
+# Install the hooks once with:  pre-commit install --install-hooks
+#                               pre-commit install --hook-type commit-msg
+#                               pre-commit install --hook-type pre-push
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+
+repos:
+  # --- Basic hygiene ---------------------------------------------------
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+
+  # --- Conventional commit messages (feeds git-cliff) ------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+
+  # --- Project-local checks --------------------------------------------
+  - repo: local
+    hooks:
+      # Lint the package on every commit that touches Elisp.
+      - id: elisp-lint
+        name: elisp lint (just lint)
+        entry: just lint
+        language: system
+        files: \.el$
+        pass_filenames: false
+
+      # Regenerate CHANGELOG.md from history before pushing. Runs at
+      # pre-push so the commits being pushed already exist in history. If
+      # git-cliff rewrites the file, pre-commit aborts the push with
+      # "files were modified by this hook" -- commit the updated
+      # changelog, then push again.
+      - id: git-cliff-changelog
+        name: git-cliff changelog
+        entry: git-cliff --output CHANGELOG.md
+        language: system
+        stages: [pre-push]
+        pass_filenames: false
+        always_run: true
