@@ -1,0 +1,69 @@
+#+title: vulpea-capf
+
+In-buffer completion of [[https://github.com/d12frosted/vulpea][Vulpea]] node names to ~id:~ links, as you type.
+
+Type a prefix of a note's title (or alias) in an Org buffer and pick it from your completion UI — the word is replaced with a
+~[[id:...][title]]~ link. It is modelled on ~org-roam-complete-everywhere~ / ~org-roam-complete-link-at-point~, but backed by the Vulpea database.
+
+* Installation
+
+** Doom Emacs
+
+In =packages.el=:
+
+#+begin_src emacs-lisp
+(package! vulpea-capf
+  :recipe (:host github :repo "neonmei/vulpea-capf"))
+#+end_src
+
+In =config.el=:
+
+#+begin_src emacs-lisp
+(use-package! vulpea-capf
+  :hook (org-mode . vulpea-capf-mode))
+#+end_src
+
+** straight.el + use-package
+
+#+begin_src emacs-lisp
+(use-package vulpea-capf
+  :straight (:host github :repo "neonmei/vulpea-capf")
+  :hook (org-mode . vulpea-capf-mode))
+#+end_src
+
+** Manual
+
+Put =vulpea-capf.el= on your ~load-path~ and:
+
+#+begin_src emacs-lisp
+(require 'vulpea-capf)
+(add-hook 'org-mode-hook #'vulpea-capf-mode)
+#+end_src
+
+* Usage
+
+Enable ~vulpea-capf-mode~ in Org buffers (see above). Then either:
+
+- type a word — e.g. =AWS= — and complete it, or
+- open a link with =[[= and complete inside the brackets.
+
+Selecting a candidate inserts ~[[id:<uuid>][<title>]]~.
+
+* Customization
+
+Two independent toggles, both on by default:
+
+| Variable                   | Default | Effect                                  |
+|----------------------------+---------+-----------------------------------------|
+| ~vulpea-capf-everywhere~     | ~t~       | complete the bare word at point         |
+| ~vulpea-capf-in-brackets~    | ~t~       | complete inside ~[[...]]~                 |
+
+Set either to ~nil~ to disable that mode:
+
+#+begin_src emacs-lisp
+(setq vulpea-capf-everywhere nil)   ; only complete inside [[...]]
+#+end_src
+
+* License
+
+GPL-3.0-or-later. See [[file:LICENSE][LICENSE]].
