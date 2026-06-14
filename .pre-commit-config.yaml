@@ -27,10 +27,10 @@ repos:
   # --- Project-local checks --------------------------------------------
   - repo: local
     hooks:
-      # Lint the package on every commit that touches Elisp.
-      - id: elisp-lint
-        name: elisp lint (just lint)
-        entry: just lint
+      # Lint and test the package on every commit that touches Elisp.
+      - id: elisp-checks
+        name: elisp checks (just ci)
+        entry: just ci
         language: system
         files: \.el$
         pass_filenames: false
