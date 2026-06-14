@@ -83,10 +83,26 @@
   (let ((table (make-hash-table :test 'equal)))
     (dolist (note (vulpea-db-query))
       (when (vulpea-note-id note)            ; skip non-note headings
-        (puthash (vulpea-note-title note) (vulpea-note-id note) table)
+        (when (vulpea-note-title note)
+          (puthash (vulpea-note-title note) (vulpea-note-id note) table))
         (dolist (alias (vulpea-note-aliases note))
-          (puthash alias (vulpea-note-id note) table))))
+          (when alias
+            (puthash alias (vulpea-note-id note) table)))))
     table))
+
+(defun vulpea-capf--completion (beg end table insert-fn)
+  "Return a capf over region BEG..END completing TABLE's keys.
+INSERT-FN is called with a node id and the selected string after the
+candidate has been removed from BEG..point; it inserts the replacement."
+  (list beg end
+        (hash-table-keys table)
+        :exit-function
+        (lambda (str &rest _)
+          (when-let* ((id (gethash (substring-no-properties str) table)))
+            (delete-region beg (point))
+            (funcall insert-fn id str)))
+        ;; Let Org's (and lower-priority) capfs run when nothing matches.
+        :exclusive 'no))
 
 ;;;###autoload
 (defun vulpea-capf-complete-everywhere ()
@@ -98,17 +114,10 @@ replaced with an `[[id:...][title]]' link."
              (thing-at-point 'word)
              (not (org-in-src-block-p))
              (not (save-match-data (org-in-regexp org-link-any-re))))
-    (let ((bounds (bounds-of-thing-at-point 'word))
-          (table  (vulpea-capf--candidates)))
-      (list (car bounds) (cdr bounds)
-            (hash-table-keys table)
-            :exit-function
-            (lambda (str _status)
-              (when-let* ((id (gethash (substring-no-properties str) table)))
-                (delete-char (- (length str)))
-                (insert "[[id:" id "][" str "]]")))
-            ;; Let Org's (and lower-priority) capfs run when nothing matches.
-            :exclusive 'no))))
+    (let ((bounds (bounds-of-thing-at-point 'word)))
+      (vulpea-capf--completion
+       (car bounds) (cdr bounds) (vulpea-capf--candidates)
+       (lambda (id str) (insert "[[id:" id "][" str "]]"))))))
 
 ;;;###autoload
 (defun vulpea-capf-complete-in-brackets ()
@@ -117,21 +126,14 @@ Intended for `completion-at-point-functions'.  Active when
 `vulpea-capf-in-brackets' is non-nil.  The typed title is replaced with
 `id:...][title', keeping the closing brackets."
   (when (and vulpea-capf-in-brackets
-             (org-in-regexp vulpea-capf--bracket-re 1)
-             (not (org-in-src-block-p)))
+             (org-in-regexp vulpea-capf--bracket-re 1))
     (let ((beg (match-beginning 1))
           (end (match-end 1)))
-      (when (<= beg (point) end)
-        (let ((table (vulpea-capf--candidates)))
-          (list beg end
-                (hash-table-keys table)
-                :exit-function
-                (lambda (str &rest _)
-                  (when-let* ((id (gethash (substring-no-properties str) table)))
-                    (delete-region beg (point))
-                    (insert "id:" id "][" str)
-                    (forward-char 2)))
-                :exclusive 'no))))))
+      (when (and (<= beg (point) end)
+                 (not (org-in-src-block-p)))
+        (vulpea-capf--completion
+         beg end (vulpea-capf--candidates)
+         (lambda (id str) (insert "id:" id "][" str) (forward-char 2)))))))
 
 ;;;###autoload
 (define-minor-mode vulpea-capf-mode
