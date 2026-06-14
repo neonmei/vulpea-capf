@@ -53,6 +53,7 @@
 (require 'subr-x)
 (require 'vulpea-db-query)
 (require 'vulpea-note)
+(require 'vulpea-select)
 
 (defgroup vulpea-capf nil
   "Completion-at-point for Vulpea nodes."
@@ -69,6 +70,19 @@
   :type 'boolean
   :group 'vulpea-capf)
 
+(defcustom vulpea-capf-annotate-function #'vulpea-select-annotate
+  "Function returning an annotation string for a `vulpea-note', or nil.
+When non-nil, its result is appended (faced with `completions-annotations')
+to each completion candidate.  This disambiguates notes that share a title
+and adds context.  The default, `vulpea-select-annotate', is what Vulpea
+uses in its own selection UI (showing #tags and, for an alias candidate,
+its primary title).  Set to nil for bare title/alias candidates.
+
+The annotation affects only the completion candidate; the inserted link
+description is always the bare title or alias."
+  :type '(choice (const :tag "None" nil) function)
+  :group 'vulpea-capf)
+
 (defconst vulpea-capf--bracket-re
   (rx "[["
       (group (zero-or-more
@@ -78,29 +92,44 @@
       "]]")
   "Regexp matching inside link brackets, for the brackets capf.")
 
+(defun vulpea-capf--annotate (note)
+  "Return a faced annotation suffix for NOTE, or an empty string.
+Controlled by `vulpea-capf-annotate-function'."
+  (if vulpea-capf-annotate-function
+      (let ((s (funcall vulpea-capf-annotate-function note)))
+        (if (string-empty-p s)
+            ""
+          (propertize s 'face 'completions-annotations)))
+    ""))
+
 (defun vulpea-capf--candidates ()
-  "Return a hash-table mapping each node title/alias string to its id."
+  "Return a hash-table mapping each candidate string to (ID . DESCRIPTION).
+Each note contributes its title and one candidate per alias (via
+`vulpea-note-expand-aliases'), each suffixed with the annotation from
+`vulpea-capf--annotate' so that notes sharing a title stay distinct.
+DESCRIPTION is the bare title/alias inserted as the link description."
   (let ((table (make-hash-table :test 'equal)))
     (dolist (note (vulpea-db-query))
       (when (vulpea-note-id note)            ; skip non-note headings
-        (when (vulpea-note-title note)
-          (puthash (vulpea-note-title note) (vulpea-note-id note) table))
-        (dolist (alias (vulpea-note-aliases note))
-          (when alias
-            (puthash alias (vulpea-note-id note) table)))))
+        (dolist (n (vulpea-note-expand-aliases note))
+          (when-let* ((desc (vulpea-note-title n)))
+            (puthash (concat desc (vulpea-capf--annotate n))
+                     (cons (vulpea-note-id n) desc)
+                     table)))))
     table))
 
 (defun vulpea-capf--completion (beg end table insert-fn)
   "Return a capf over region BEG..END completing TABLE's keys.
-INSERT-FN is called with a node id and the selected string after the
-candidate has been removed from BEG..point; it inserts the replacement."
+TABLE maps each candidate string to (ID . DESCRIPTION).  INSERT-FN is
+called with that id and description after the selected candidate has been
+removed from BEG..point; it inserts the replacement."
   (list beg end
         (hash-table-keys table)
         :exit-function
         (lambda (str &rest _)
-          (when-let* ((id (gethash (substring-no-properties str) table)))
+          (when-let* ((cell (gethash (substring-no-properties str) table)))
             (delete-region beg (point))
-            (funcall insert-fn id str)))
+            (funcall insert-fn (car cell) (cdr cell))))
         ;; Let Org's (and lower-priority) capfs run when nothing matches.
         :exclusive 'no))
 
@@ -117,7 +146,7 @@ replaced with an `[[id:...][title]]' link."
     (let ((bounds (bounds-of-thing-at-point 'word)))
       (vulpea-capf--completion
        (car bounds) (cdr bounds) (vulpea-capf--candidates)
-       (lambda (id str) (insert "[[id:" id "][" str "]]"))))))
+       (lambda (id desc) (insert "[[id:" id "][" desc "]]"))))))
 
 ;;;###autoload
 (defun vulpea-capf-complete-in-brackets ()
@@ -133,7 +162,7 @@ Intended for `completion-at-point-functions'.  Active when
                  (not (org-in-src-block-p)))
         (vulpea-capf--completion
          beg end (vulpea-capf--candidates)
-         (lambda (id str) (insert "id:" id "][" str) (forward-char 2)))))))
+         (lambda (id desc) (insert "id:" id "][" desc) (forward-char 2)))))))
 
 ;;;###autoload
 (define-minor-mode vulpea-capf-mode
