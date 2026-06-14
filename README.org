@@ -51,17 +51,22 @@ Selecting a candidate inserts ~[[id:<uuid>][<title>]]~.
 
 * Customization
 
-Two independent toggles, both on by default:
+| Variable                        | Default                  | Effect                                            |
+|---------------------------------+--------------------------+---------------------------------------------------|
+| ~vulpea-capf-everywhere~          | ~t~                        | complete the bare word at point                   |
+| ~vulpea-capf-in-brackets~         | ~t~                        | complete inside ~[[...]]~                           |
+| ~vulpea-capf-annotate-function~   | ~vulpea-select-annotate~   | annotate candidates; disambiguates shared titles  |
 
-| Variable                   | Default | Effect                                  |
-|----------------------------+---------+-----------------------------------------|
-| ~vulpea-capf-everywhere~     | ~t~       | complete the bare word at point         |
-| ~vulpea-capf-in-brackets~    | ~t~       | complete inside ~[[...]]~                 |
-
-Set either to ~nil~ to disable that mode:
+Set either toggle to ~nil~ to disable that mode:
 
 #+begin_src emacs-lisp
 (setq vulpea-capf-everywhere nil)   ; only complete inside [[...]]
+#+end_src
+
+~vulpea-capf-annotate-function~ is a function taking a ~vulpea-note~ and returning a string that is appended (greyed) to each candidate. The default — ~vulpea-select-annotate~, the same annotation Vulpea uses in its own selection UI — shows ~#tags~ and, for an alias, its primary title, so two notes sharing a title remain distinguishable and resolve to the correct link. Plug in your own function (e.g. showing ~vulpea-note-file-title~), or set it to ~nil~ for bare title/alias candidates:
+
+#+begin_src emacs-lisp
+(setq vulpea-capf-annotate-function nil)   ; no annotation
 #+end_src
 
 * License
