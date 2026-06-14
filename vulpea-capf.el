@@ -2,8 +2,8 @@
 
 ;; Copyright (C) 2026 neonmei
 
-;; Author: neonmei <root@neonmei.cloud>
-;; Maintainer: neonmei <root@neonmei.cloud>
+;; Author: neonmei <releng@neonmei.cloud>
+;; Maintainer: neonmei <releng@neonmei.cloud>
 ;; URL: https://github.com/neonmei/vulpea-capf
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "28.1") (vulpea "2.0"))
