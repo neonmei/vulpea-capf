@@ -43,13 +43,9 @@ lint: deps
 # Everything CI should run.
 ci: lint
 
-# Regenerate CHANGELOG.md from the conventional commit history with version bumped.
-changelog-bump:
-    git-cliff --bump --output CHANGELOG.md
-
 # Regenerate CHANGELOG.md from the conventional commit history.
 changelog:
-    git-cliff --output CHANGELOG.md
+    git-cliff --bump --output CHANGELOG.md
 
 # Remove build artifacts (keeps the dependency sandbox).
 clean:
