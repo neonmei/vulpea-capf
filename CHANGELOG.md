@@ -1,3 +1,8 @@
+## [0.2.2] - 2026-06-14
+
+### ⚙️ Miscellaneous Tasks
+
+- *(tests)* Add initial tests with emacs ERT
 ## [0.2.1] - 2026-06-14
 
 ### 🐛 Bug Fixes

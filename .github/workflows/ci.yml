@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: emacs ${{ matrix.emacs }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        emacs: ['28.1', '29.4', 'snapshot']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Emacs
+        uses: purcell/setup-emacs@master
+        with:
+          version: ${{ matrix.emacs }}
+
+      - name: Install just
+        uses: extractions/setup-just@v3
+
+      # Lint (checkdoc + package-lint + byte-compile-as-errors) and run the
+      # ERT suite. This is the validation gate on every Emacs version.
+      - name: Validate (just ci)
+        run: just ci
+
+      # Coverage line data is identical across Emacs versions, so generate and
+      # upload it once from the current stable release only.
+      - name: Generate coverage (lcov)
+        if: matrix.emacs == '29.4'
+        run: just coverage lcov
+
+      - name: Upload coverage to Codecov
+        if: matrix.emacs == '29.4'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
