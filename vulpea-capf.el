@@ -6,7 +6,7 @@
 ;; Maintainer: neonmei <releng@neonmei.cloud>
 ;; URL: https://github.com/neonmei/vulpea-capf
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "28.1") (vulpea "2.0"))
+;; Package-Requires: ((emacs "29.4") (vulpea "2.0"))
 ;; Keywords: convenience, outlines, org
 
 ;; This file is not part of GNU Emacs.
